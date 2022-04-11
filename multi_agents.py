@@ -194,6 +194,103 @@ class MinmaxAgent(MultiAgentSearchAgent):
                     min_move = kido
             return min_eval, min_move
 
+    def get_action(self, game_state):
+        """
+        Returns the minimax action from the current gameState using self.depth
+        and self.evaluationFunction.
+
+        Here are some method calls that might be useful when implementing minimax.
+
+        game_state.get_legal_actions(agent_index):
+            Returns a list of legal actions for an agent
+            agent_index=0 means our agent, the opponent is agent_index=1
+
+        Action.STOP:
+            The stop direction, which is always legal
+
+        game_state.generate_successor(agent_index, action):
+            Returns the successor game state after an agent takes an action
+        """
+
+        action = self.recursive_helper(game_state, 2 * self.depth, 0)
+        print(action[0])
+        exit()
+        if action[1]:
+            return action[1]
+        return Action.STOP
+
+
+class AlphaBetaAgent(MultiAgentSearchAgent):
+    """
+    Your minimax agent with alpha-beta pruning (question 3)
+    """
+
+    def recursive_helper(self, game_state, depth, alpha, beta, agent_index):
+        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+            return self.evaluation_function(game_state), None
+        kidos = game_state.get_legal_actions(agent_index)
+        if agent_index == 0:
+            max_eval = -np.inf
+            max_move = None
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, alpha, beta,
+                                             1)
+                if eval[0] > max_eval:
+                    max_eval = eval[0]
+                    max_move = kido
+                alpha = max(alpha, eval[0])
+                if beta <= alpha:
+                    break
+            return max_eval, max_move
+        else:
+            min_eval = np.inf
+            min_move = None
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, alpha, beta,
+                                             0)
+                if eval[0] < min_eval:
+                    min_eval = eval[0]
+                    min_move = kido
+                beta = min(beta, eval[0])
+                if beta <= alpha:
+                    break
+            return min_eval, min_move
+
+    def get_action(self, game_state):
+        """
+        Returns the minimax action using self.depth and self.evaluationFunction
+        """
+        action = self.recursive_helper(game_state, 2 * self.depth, -np.inf, np.inf, 0)
+        if action[1]:
+            return action[1]
+        return Action.STOP
+
+
+class ExpectimaxAgent(MultiAgentSearchAgent):
+    """
+    Your expectimax agent (question 4)
+    """
+    def recursive_helper(self, game_state, depth, agent_index):
+        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+            return self.evaluation_function(game_state), None
+        kidos = game_state.get_legal_actions(agent_index)
+        if agent_index == 0:
+            max_eval = -np.inf
+            max_move = None
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, 1)
+                if eval[0] > max_eval:
+                    max_eval = eval[0]
+                    max_move = kido
+            return max_eval, max_move
+        else:
+            min_move = None
+            count = 0
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, 0)
+                count += eval[0]
+            expectedMin = count / len(kidos)
+            return expectedMin, min_move
 
     def get_action(self, game_state):
         """
@@ -212,39 +309,12 @@ class MinmaxAgent(MultiAgentSearchAgent):
         game_state.generate_successor(agent_index, action):
             Returns the successor game state after an agent takes an action
         """
-        action = self.recursive_helper(game_state, self.depth, 0)[1]
-        if action:
-            return action
+
+        action = self.recursive_helper(game_state,2 * self.depth, 0)
+        if action[1]:
+            return action[1]
         return Action.STOP
 
-
-class AlphaBetaAgent(MultiAgentSearchAgent):
-    """
-    Your minimax agent with alpha-beta pruning (question 3)
-    """
-
-    def get_action(self, game_state):
-        """
-        Returns the minimax action using self.depth and self.evaluationFunction
-        """
-        """*** YOUR CODE HERE ***"""
-        util.raiseNotDefined()
-
-
-class ExpectimaxAgent(MultiAgentSearchAgent):
-    """
-    Your expectimax agent (question 4)
-    """
-
-    def get_action(self, game_state):
-        """
-        Returns the expectimax action using self.depth and self.evaluationFunction
-
-        The opponent should be modeled as choosing uniformly at random from their
-        legal moves.
-        """
-        """*** YOUR CODE HERE ***"""
-        util.raiseNotDefined()
 
 
 def better_evaluation_function(current_game_state):
