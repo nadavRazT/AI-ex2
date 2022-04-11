@@ -3,6 +3,9 @@ import abc
 import util
 from game import Agent, Action
 
+# CONSTANTS #
+possible_tiles = 2 ** np.linspace(1, 11, 11)
+
 
 class ReflexAgent(Agent):
     """
@@ -50,10 +53,86 @@ class ReflexAgent(Agent):
         successor_game_state = current_game_state.generate_successor(action=action)
         board = successor_game_state.board
         max_tile = successor_game_state.max_tile
-        score = successor_game_state.score
 
-        "*** YOUR CODE HERE ***"
-        return score
+        score = successor_game_state.score
+        doubles = check_double_tiles(current_game_state)
+        num_zeros = count_zeros(current_game_state)
+        closest_neigbors = check_neighbors(current_game_state)
+        num_two = count_two(current_game_state)
+        return score + max_tile + 2 * check_monotonito(current_game_state) + num_zeros - num_two
+
+
+def check_monotonito(state):
+    board = state.board
+    best = 0
+    for i in range(4):
+        board_der_x = board - np.roll(board, -1)
+        board_der_x = board_der_x[:, :-1]
+        board_der_y = board - np.roll(board, -1, axis=1)
+        board_der_y = board_der_y[:-1, :]
+        count_y = np.count_nonzero(board_der_y >= 0)
+        count_x = np.count_nonzero(board_der_x >= 0)
+        count = count_x + count_y
+        if best < count:
+            best = count
+        board = np.rot90(board)
+    return best
+
+
+def check_neighbors(state):
+    board = state.board
+    score = 0
+    for y in range(len(board)):
+        for x in range(len(board)):
+            if board[y, x] == 0:
+                continue
+            neighbor_status = get_neighbors(board, x, y)
+            if neighbor_status == 0:
+                continue
+            score += 1 / get_neighbors(board, x, y)
+    return score
+
+
+def count_zeros(state):
+    board = state.board
+    return np.count_nonzero(board == 0)
+
+
+def get_neighbors(board, x, y):
+    val = board[y, x]
+    board_w = len(board[0])
+    board_h = len(board)
+    neighbors = []
+    if x + 1 < board_w and board[y, x + 1] != 0:
+        neighbors.append(board[y, x + 1])
+    if x - 1 >= 0 and board[y, x - 1] != 0:
+        neighbors.append(board[y, x - 1])
+    if y + 1 < board_h and board[y + 1, x] != 0:
+        neighbors.append(board[y + 1, x])
+    if y - 1 >= 0 and board[y - 1, x] != 0:
+        neighbors.append(board[y - 1, x])
+    if not neighbors:
+        return 1
+    neighbors = np.array(neighbors)
+    neighbors = neighbors / val
+    neighbors = np.log(neighbors)
+    neighbors.sort()
+    res = neighbors[:2]
+    return np.sum(res)
+
+
+def count_two(state):
+    return np.count_nonzero(state.board == 2)
+
+
+def check_double_tiles(state):
+    board = state.board
+    double = 1
+    for tile in possible_tiles:
+        count = np.count_nonzero(board == tile)
+        if count > 1:
+            double += count
+    return double
 
 
 def score_evaluation_function(current_game_state):
@@ -92,6 +171,30 @@ class MultiAgentSearchAgent(Agent):
 
 
 class MinmaxAgent(MultiAgentSearchAgent):
+    def recursive_helper(self, game_state, depth, agent_index):
+        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+            return self.evaluation_function(game_state), None
+        kidos = game_state.get_legal_actions(agent_index)
+        if agent_index == 0:
+            max_eval = -np.inf
+            max_move = None
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, 1)
+                if eval[0] > max_eval:
+                    max_eval = eval[0]
+                    max_move = kido
+            return max_eval, max_move
+        else:
+            min_eval = np.inf
+            min_move = None
+            for kido in kidos:
+                eval = self.recursive_helper(game_state.generate_successor(agent_index, kido), depth - 1, 0)
+                if eval[0] < min_eval:
+                    min_eval = eval[0]
+                    min_move = kido
+            return min_eval, min_move
+
+
     def get_action(self, game_state):
         """
         Returns the minimax action from the current gameState using self.depth
@@ -109,9 +212,10 @@ class MinmaxAgent(MultiAgentSearchAgent):
         game_state.generate_successor(agent_index, action):
             Returns the successor game state after an agent takes an action
         """
-        """*** YOUR CODE HERE ***"""
-        util.raiseNotDefined()
-
+        action = self.recursive_helper(game_state, self.depth, 0)[1]
+        if action:
+            return action
+        return Action.STOP
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -125,7 +229,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         """*** YOUR CODE HERE ***"""
         util.raiseNotDefined()
-
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
@@ -142,9 +245,6 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         """
         """*** YOUR CODE HERE ***"""
         util.raiseNotDefined()
-
-
-
 
 
 def better_evaluation_function(current_game_state):
