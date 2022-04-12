@@ -127,7 +127,7 @@ def count_two(state):
 
 def check_double_tiles(state):
     board = state.board
-    double = 1
+    double = 0
     for tile in possible_tiles:
         count = np.count_nonzero(board == tile)
         if count > 1:
@@ -316,6 +316,36 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return Action.STOP
 
 
+def find_closest_to_biggest(state):
+    board = state.board
+    index = np.argmax(board)
+    board_w = len(board[0])
+    board_h = len(board)
+    y = index // board_w
+    x = index % board_w
+    corners = [(0,0), (0, board_w), (board_h, board_w), (board_h, 0)]
+    best_corner = 0
+    min_dist = np.inf
+    for corner in corners:
+        dist = np.sqrt((y - corner[0]) ** 2 + (x - corner[1]) ** 2)
+        if dist < min_dist:
+            min_dist = dist
+            best_corner = corner
+    return best_corner, dist * np.log(board[y,x])
+
+
+def get_dist_matrix(corner):
+    x, y = np.meshgrid(np.arange(4), np.arange(4))
+    final = np.sqrt((x - corner[1])**2 + (y - corner[0])**2)
+    return final
+
+def close_to_corner(state):
+    board = state.board
+    best_corner, _ = find_closest_to_biggest(state)
+    dist_matrix = get_dist_matrix(best_corner)
+    result = np.log(np.sum(dist_matrix * board))
+    return result
+
 
 def better_evaluation_function(current_game_state):
     """
@@ -323,9 +353,16 @@ def better_evaluation_function(current_game_state):
 
     DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    board = current_game_state.board
+    max_tile = current_game_state.max_tile
 
-
+    score = current_game_state.score
+    doubles = check_double_tiles(current_game_state)
+    num_zeros = count_zeros(current_game_state)
+    closest_neigbors = check_neighbors(current_game_state)
+    num_two = count_two(current_game_state)
+    # structure = close_to_corner(current_game_state)
+    _, dist_to_biggest = find_closest_to_biggest(current_game_state)
+    return score + max_tile + 2 * check_monotonito(current_game_state) + 2 * num_zeros - num_two # - dist_to_biggest
 # Abbreviation
 better = better_evaluation_function
