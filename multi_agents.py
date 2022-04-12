@@ -5,6 +5,9 @@ from game import Agent, Action
 
 # CONSTANTS #
 possible_tiles = 2 ** np.linspace(1, 11, 11)
+CORNER = 1
+SIDE = 2
+ELSE = 3
 
 
 class ReflexAgent(Agent):
@@ -55,7 +58,6 @@ class ReflexAgent(Agent):
         max_tile = successor_game_state.max_tile
 
         score = successor_game_state.score
-        doubles = check_double_tiles(current_game_state)
         num_zeros = count_zeros(current_game_state)
         closest_neigbors = check_neighbors(current_game_state)
         num_two = count_two(current_game_state)
@@ -125,14 +127,16 @@ def count_two(state):
     return np.count_nonzero(state.board == 2)
 
 
-def check_double_tiles(state):
+def check_double_pairs(state):
     board = state.board
-    double = 0
-    for tile in possible_tiles:
-        count = np.count_nonzero(board == tile)
-        if count > 1:
-            double += count
-    return double
+    board_der_x = board - np.roll(board, -1)
+    board_der_x = board_der_x[:, :-1]
+    board_der_y = board - np.roll(board, -1, axis=1)
+    board_der_y = board_der_y[:-1, :]
+    count_x = np.count_nonzero(board_der_x == 0)
+    count_y = np.count_nonzero(board_der_y == 0)
+    count = count_x + count_y
+    return count
 
 
 def score_evaluation_function(current_game_state):
@@ -270,6 +274,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     """
     Your expectimax agent (question 4)
     """
+
     def recursive_helper(self, game_state, depth, agent_index):
         if depth == 0 or np.count_nonzero(game_state.board >= 2048):
             return self.evaluation_function(game_state), None
@@ -310,7 +315,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             Returns the successor game state after an agent takes an action
         """
 
-        action = self.recursive_helper(game_state,2 * self.depth, 0)
+        action = self.recursive_helper(game_state, 2 * self.depth, 0)
         if action[1]:
             return action[1]
         return Action.STOP
@@ -323,7 +328,7 @@ def find_closest_to_biggest(state):
     board_h = len(board)
     y = index // board_w
     x = index % board_w
-    corners = [(0,0), (0, board_w), (board_h, board_w), (board_h, 0)]
+    corners = [(0, 0), (0, board_w), (board_h, board_w), (board_h, 0)]
     best_corner = 0
     min_dist = np.inf
     for corner in corners:
@@ -331,13 +336,14 @@ def find_closest_to_biggest(state):
         if dist < min_dist:
             min_dist = dist
             best_corner = corner
-    return best_corner, dist * np.log(board[y,x])
+    return best_corner, dist * np.log(board[y, x])
 
 
 def get_dist_matrix(corner):
     x, y = np.meshgrid(np.arange(4), np.arange(4))
-    final = np.sqrt((x - corner[1])**2 + (y - corner[0])**2)
+    final = np.sqrt((x - corner[1]) ** 2 + (y - corner[0]) ** 2)
     return final
+
 
 def close_to_corner(state):
     board = state.board
@@ -345,6 +351,41 @@ def close_to_corner(state):
     dist_matrix = get_dist_matrix(best_corner)
     result = np.log(np.sum(dist_matrix * board))
     return result
+
+
+def is_biggest_in_corner(state):
+    board = state.board
+    index = np.argmax(board)
+    board_w = len(board[0])
+    board_h = len(board)
+    y = index // board_w
+    x = index % board_w
+    # corners = [(0, 0), (0, board_w), (board_h, board_w), (board_h, 0)]
+    if (y, x) == (0, 0) or (y, x) == (0, board_w - 1) or (y, x) == (board_h - 1, board_w - 1) or (y, x) == (
+    board_h - 1, 0):
+        return board[y, x]
+    if x == 0 or x == board_w - 1 or y == board_h - 1 or y == 0:
+        return board[y, x] // 2
+    return -board[y, x]
+
+
+def dist_between_biggestest(state):
+    board = state.board
+    index = np.argmax(board)
+    board_w = len(board[0])
+    board_h = len(board)
+    y_0 = index // board_w
+    x_0 = index % board_w
+    val_0 = board[y_0, x_0]
+    board[y_0, x_0] = 0
+    index = np.argmax(board)
+    y_1 = index // board_w
+    x_1 = index % board_w
+    dist = np.sqrt((y_1 - y_0) ** 2 + (x_1 - x_0) ** 2)
+    board[y_0, x_0] = val_0
+    if dist == 1:
+        return val_0
+    return val_0 // dist
 
 
 def better_evaluation_function(current_game_state):
@@ -357,12 +398,18 @@ def better_evaluation_function(current_game_state):
     max_tile = current_game_state.max_tile
 
     score = current_game_state.score
-    doubles = check_double_tiles(current_game_state)
+    # doubles = check_double_tiles(current_game_state)
     num_zeros = count_zeros(current_game_state)
     closest_neigbors = check_neighbors(current_game_state)
     num_two = count_two(current_game_state)
     # structure = close_to_corner(current_game_state)
     _, dist_to_biggest = find_closest_to_biggest(current_game_state)
-    return score + max_tile + 2 * check_monotonito(current_game_state) + 2 * num_zeros - num_two # - dist_to_biggest
+    place_of_biggest = is_biggest_in_corner(current_game_state)
+    couple_highest = dist_between_biggestest(current_game_state)
+    double_pairs = check_double_pairs(current_game_state)
+    return score // 2 + 2 * place_of_biggest + couple_highest + max_tile + 3 * check_monotonito(
+        current_game_state) + 2 * num_zeros - num_two + double_pairs# - dist_to_biggest
+
+
 # Abbreviation
 better = better_evaluation_function
