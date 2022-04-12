@@ -176,7 +176,7 @@ class MultiAgentSearchAgent(Agent):
 
 class MinmaxAgent(MultiAgentSearchAgent):
     def recursive_helper(self, game_state, depth, agent_index):
-        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+        if depth == 0:
             return self.evaluation_function(game_state), None
         kidos = game_state.get_legal_actions(agent_index)
         if agent_index == 0:
@@ -230,7 +230,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     """
 
     def recursive_helper(self, game_state, depth, alpha, beta, agent_index):
-        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+        if depth == 0:
             return self.evaluation_function(game_state), None
         kidos = game_state.get_legal_actions(agent_index)
         if agent_index == 0:
@@ -276,7 +276,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     """
 
     def recursive_helper(self, game_state, depth, agent_index):
-        if depth == 0 or np.count_nonzero(game_state.board >= 2048):
+        if depth == 0:
             return self.evaluation_function(game_state), None
         kidos = game_state.get_legal_actions(agent_index)
         if agent_index == 0:
@@ -361,10 +361,10 @@ def is_biggest_in_corner(state):
     y = index // board_w
     x = index % board_w
     # corners = [(0, 0), (0, board_w), (board_h, board_w), (board_h, 0)]
-    if (y, x) == (0, 0): #or (y, x) == (0, board_w - 1) or (y, x) == (board_h - 1, board_w - 1) or (y, x) == (
-    # board_h - 1, 0):
+    if (y, x) == (0, 0):  # or (y, x) == (0, board_w - 1) or (y, x) == (board_h - 1, board_w - 1) or (y, x) == (
+        # board_h - 1, 0):
         return board[y, x]
-    return -10 * board[y, x]
+    return -100 * board[y, x]
 
 
 def dist_between_biggestest(state):
@@ -383,7 +383,38 @@ def dist_between_biggestest(state):
     board[y_0, x_0] = val_0
     if dist == 1:
         return val_0
-    return val_0 // dist
+    return val_0 / (2 * dist)
+
+
+def dist_between_biggestest_helper(board):
+    index = np.argmax(board)
+    board_w = len(board[0])
+    board_h = len(board)
+    y_0 = index // board_w
+    x_0 = index % board_w
+    val_0 = board[y_0, x_0]
+    board[y_0, x_0] = 0
+    index = np.argmax(board)
+    y_1 = index // board_w
+    x_1 = index % board_w
+    dist = np.sqrt((y_1 - y_0) ** 2 + (x_1 - x_0) ** 2)
+    if dist == 1:
+        return val_0, board
+    return 0, board
+
+
+def snake_structure(state):
+    board = state.board
+    if np.max(board) < 128 or np.argmax(board) != 0:
+        return 0
+    check = 1
+    result = 0
+    while check != 0:
+        if np.max(board) <= 32:
+            break
+        val, board = dist_between_biggestest_helper(board)
+        result += val
+    return np.log(result + 1)
 
 
 def better_evaluation_function(current_game_state):
@@ -405,8 +436,11 @@ def better_evaluation_function(current_game_state):
     place_of_biggest = is_biggest_in_corner(current_game_state)
     couple_highest = dist_between_biggestest(current_game_state)
     double_pairs = check_double_pairs(current_game_state)
-    return score // 2 + 2 * place_of_biggest + couple_highest + max_tile +\
-           3 * check_monotonito(current_game_state) + 2 * num_zeros - num_two + double_pairs
+    # structure = snake_structure(current_game_state)
+    return score // 2 + 2 * place_of_biggest + couple_highest + 1.2 * max_tile + \
+    3 * check_monotonito(current_game_state) + 2 * num_zeros - num_two + double_pairs
+    # return ((score ** 0.5) * (place_of_biggest ** 2) * couple_highest * max_tile * \
+    #         (check_monotonito(current_game_state) ** 3) * (num_zeros ** 2) / (num_two + 1) * double_pairs)**(1 / 8)
 
 
 # Abbreviation
