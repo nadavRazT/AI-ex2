@@ -361,12 +361,10 @@ def is_biggest_in_corner(state):
     y = index // board_w
     x = index % board_w
     # corners = [(0, 0), (0, board_w), (board_h, board_w), (board_h, 0)]
-    if (y, x) == (0, 0) or (y, x) == (0, board_w - 1) or (y, x) == (board_h - 1, board_w - 1) or (y, x) == (
-    board_h - 1, 0):
+    if (y, x) == (0, 0): #or (y, x) == (0, board_w - 1) or (y, x) == (board_h - 1, board_w - 1) or (y, x) == (
+    # board_h - 1, 0):
         return board[y, x]
-    if x == 0 or x == board_w - 1 or y == board_h - 1 or y == 0:
-        return board[y, x] // 2
-    return -board[y, x]
+    return -10 * board[y, x]
 
 
 def dist_between_biggestest(state):
@@ -407,8 +405,8 @@ def better_evaluation_function(current_game_state):
     place_of_biggest = is_biggest_in_corner(current_game_state)
     couple_highest = dist_between_biggestest(current_game_state)
     double_pairs = check_double_pairs(current_game_state)
-    return score // 2 + 2 * place_of_biggest + couple_highest + max_tile + 3 * check_monotonito(
-        current_game_state) + 2 * num_zeros - num_two + double_pairs# - dist_to_biggest
+    return score // 2 + 2 * place_of_biggest + couple_highest + max_tile +\
+           3 * check_monotonito(current_game_state) + 2 * num_zeros - num_two + double_pairs
 
 
 # Abbreviation
