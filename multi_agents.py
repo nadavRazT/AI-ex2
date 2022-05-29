@@ -61,7 +61,9 @@ class ReflexAgent(Agent):
         num_zeros = count_zeros(current_game_state)
         closest_neigbors = check_neighbors(current_game_state)
         num_two = count_two(current_game_state)
-        return score + max_tile + 2 * check_monotonito(current_game_state) + num_zeros - num_two
+        corner = is_biggest_in_corner(current_game_state)
+        biggestest = dist_between_biggestest(current_game_state)
+        return score + max_tile + 2 * corner + biggestest + 2 * check_monotonito(current_game_state) + num_zeros - num_two
 
 
 def check_monotonito(state):
@@ -217,8 +219,7 @@ class MinmaxAgent(MultiAgentSearchAgent):
         """
 
         action = self.recursive_helper(game_state, 2 * self.depth, 0)
-        print(action[0])
-        exit()
+
         if action[1]:
             return action[1]
         return Action.STOP
@@ -421,7 +422,20 @@ def better_evaluation_function(current_game_state):
     """
     Your extreme 2048 evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: we used a few heuristics in our evaluation function:
+    1. the score of the state
+    2. sticking the largest tile to the (0,0) corner
+    3. sticking the second largest tile to the largest tile
+    4. the value of the maximum tile
+    5. the monotonity of the board - that is, not creating a situation of 256, 1024, 512 (in this order),
+    because it will be difficult to merge them into 2048
+    6. the number of zeros on the board - we and it to be as empty as possible
+    7. the number of twos on the board - we want to have as little small tiles as possible
+    8. the number of equal neighbors on the board - we want to have as many as possible because we
+    will be able to merge them in the next move.
+    it is important to say that in our way of weighting the heuristics, we preferred heuristics 2 and 3,
+    while the last 4 heuristics had a small impact, but leaving them in like that did not ruin the algorithm.
+
     """
     board = current_game_state.board
     max_tile = current_game_state.max_tile
