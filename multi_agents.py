@@ -222,7 +222,7 @@ class MinmaxAgent(MultiAgentSearchAgent):
 
         if action[1]:
             return action[1]
-        return Action.STOP
+        return None
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -232,7 +232,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
     def recursive_helper(self, game_state, depth, alpha, beta, agent_index):
         if depth == 0:
-            return self.evaluation_function(game_state), None
+            return self.evaluation_function(game_state), Action.STOP
         kidos = game_state.get_legal_actions(agent_index)
         if agent_index == 0:
             max_eval = -np.inf
